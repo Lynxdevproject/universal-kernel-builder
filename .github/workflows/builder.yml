@@ -2,44 +2,6 @@ name: Universal Kernel Builder
 
 on:
   workflow_dispatch:
-    inputs:
-      kernel_source:
-        description: '🔗 URL kernel source'
-        required: true
-        default: 'https://github.com/lynxdevproject/kernel-begonia'
-      kernel_branch:
-        description: '🌿 Branch kernel source'
-        required: true
-        default: 'main'
-      defconfig:
-        description: '🧪 Kernel defconfig'
-        required: true
-        default: 'begonia_user_defconfig'
-      build_args:
-        description: '⚙️ Extra build args'
-        required: false
-        default: 'CONFIG_CC_STACKPROTECTOR_STRONG=n'
-      anykernel:
-        description: '📦 Use AnyKernel3 packaging?'
-        required: true
-        type: boolean
-        default: true
-      anykernel_repo:
-        description: '🌐 URL AnyKernel3 repo'
-        required: false
-        default: 'https://github.com/osm0sis/AnyKernel3.git'
-      anykernel_branch:
-        description: '🌿 Branch of AnyKernel3'
-        required: false
-        default: 'master'
-      zip_name:
-        description: '📝 Output ZIP base name'
-        required: false
-        default: 'ReogKernel'
-      developer:
-        description: '👤 Your name/ID'
-        required: false
-        default: 'lynx@workspace'
 
 jobs:
   build-kernel:
@@ -49,7 +11,19 @@ jobs:
       OUT_DIR: out
 
     steps:
-      - name: 🧰 Setup Toolchain
+      - name: 📦 Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Environment
+        run: |
+          echo "ANYKERNEL_SOURCE=$(cat config.env | grep -w "ANYKERNEL_SOURCE" | head -n1 | cut -d "=" -f2)" >> $GITHUB_ENV
+          echo "ANYKERNEL_SOURCE_BRANCH=$(cat config.env | grep -w "ANYKERNEL_SOURCE_BRANCH" | head -n1 | cut -d "=" -f2)" >> $GITHUB_ENV
+          echo "KERNEL_SOURCE=$(cat config.env | grep -w "KERNEL_SOURCE" | head -n1 | cut -d "=" -f2)" >> $GITHUB_ENV
+          echo "KERNEL_SOURCE_BRANCH=$(cat config.env | grep -w "KERNEL_SOURCE_BRANCH" | head -n1 | cut -d "=" -f2)" >> $GITHUB_ENV
+          echo "KERNEL_CONFIG=$(cat config.env | grep -w "KERNEL_CONFIG" | head -n1 | cut -d "=" -f2)" >> $GITHUB_ENV
+          echo "BUILD_ARGS=$(cat config.env | grep -w "BUILD_ARGS" | head -n1 | cut -d ":" -f2)" >> $GITHUB_ENV
+
+      - name: 🛠️ Pull Toolchain
         run: |
           git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 aarch64-linux-android-4.9
           git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 arm-linux-androideabi-4.9
@@ -57,27 +31,26 @@ jobs:
 
       - name: ⏱️ Pull Kernel Source
         run: |
-          git clone --depth=1 ${{ github.event.inputs.kernel_source }} -b ${{ github.event.inputs.kernel_branch }} kernel-source
+          git clone --depth=1 ${{ env.KERNEL_SOURCE }} -b ${{ env.KERNEL_SOURCE_BRANCH }} kernel-source
 
-      - name: ⚙️ Build Kernel
+      - name: 🧪 Build Kernel
         run: |
-          export KBUILD_BUILD_USER="${{ github.event.inputs.developer }}"
+          export KBUILD_BUILD_USER="lynx@workspace"
           export KBUILD_BUILD_HOST="workspace"
           export PATH=$GITHUB_WORKSPACE/clang/bin:${PATH}
           args="ARCH=arm64 \
                 O=../out \
-                ${{ github.event.inputs.build_args }} \
+                ${{ env.BUILD_ARGS }} \
                 CLANG_TRIPLE=aarch64-linux-gnu- \
                 CROSS_COMPILE=$GITHUB_WORKSPACE/aarch64-linux-android-4.9/bin/aarch64-linux-android- \
                 CROSS_COMPILE_ARM32=$GITHUB_WORKSPACE/arm-linux-androideabi-4.9/bin/arm-linux-androideabi-"
           cd kernel-source
-          make ${args} ${{ github.event.inputs.defconfig }}
+          make ${args} ${{ env.KERNEL_CONFIG }}
           make -j$(nproc) ${args}
 
-      - name: 📦 Package with AnyKernel3
-        if: ${{ github.event.inputs.anykernel }}
+      - name: 📦 Package Kernel with AnyKernel3
         run: |
-          git clone --depth=1 -b "${{ github.event.inputs.anykernel_branch }}" "${{ github.event.inputs.anykernel_repo }}" AnyKernel3
+          git clone --depth=1 ${{ env.ANYKERNEL_SOURCE }} -b ${{ env.ANYKERNEL_SOURCE_BRANCH }} AnyKernel3
           rm -rf AnyKernel3/.git* AnyKernel3/LICENSE AnyKernel3/README.md
           IMG_PATH="out/arch/arm64/boot"
           for img in Image.gz-dtb Image-dtb Image.gz Image; do
@@ -89,16 +62,9 @@ jobs:
           if [[ -f $IMG_PATH/dtbo.img ]]; then
             cp $IMG_PATH/dtbo.img AnyKernel3/dtbo.img
           fi
-          DATE=$(date +'%Y-%m-%d_%H-%M')
-          ZIP_NAME="${{ github.event.inputs.zip_name }}-${{ github.event.inputs.developer }}-${DATE}.zip"
-          cd AnyKernel3
-          zip -r "${ZIP_NAME}" *
 
-      - name: ☁️ Upload Artifact
+      - name: ☁️ Upload Kernel Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Kernel-${{ github.event.inputs.developer }}
-          path: |
-            build.log
-            out/arch/arm64/boot/*
-            AnyKernel3/*.zip
+          name: output_kernel
+          path: AnyKernel3/*
