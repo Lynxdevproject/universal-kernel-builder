@@ -60,3 +60,18 @@ A lightweight GitHub Actions workflow for compiling Android kernels via form-bas
 
 - **Workflow integration**  
   Final builder designed and refined for universal kernel compilation with GitHub UI trigger and artifact export
+
+
+## 🙌 Credits
+
+- **Toolchain sources**  
+  Prebuilt GCC & Clang archives sourced from [LineageOS](https://github.com/LineageOS) and [AOSP](https://android.googlesource.com/platform/prebuilts/clang)
+
+- **Kernel packaging**  
+  [AnyKernel3](https://github.com/osm0sis/AnyKernel3) maintained by osm0sis
+
+- **Workflow inspiration**  
+  Remake inspired by [Zclkk](https://github.com/zclkk)'s config.env builder and the minimalist CI flow of [OrangeFox Recovery](https://github.com/OrangeFoxRecovery)
+
+- **Workflow integration**  
+  Final builder designed and refined for universal kernel compilation with GitHub UI trigger and artifact export
