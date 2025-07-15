@@ -37,7 +37,7 @@ on:
         required: false
         default: 'ReogKernel'
       developer:
-        description: '👤 Developer name/ID'
+        description: '👤 Your name/ID'
         required: false
         default: 'lynx@workspace'
 
@@ -102,19 +102,3 @@ jobs:
             build.log
             out/arch/arm64/boot/*
             AnyKernel3/*.zip
-
-      - name: 🔔 Notify Telegram (via Secrets)
-        if: ${{ secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_CHAT_ID != '' }}
-        run: |
-          DATE=$(date +'%Y-%m-%d_%H-%M')
-          ZIP_NAME="${{ github.event.inputs.zip_name }}-${{ github.event.inputs.developer }}-${DATE}.zip"
-          MESSAGE="✅ *Build selesai!*%0A\
-📱 Device: `${{ github.event.inputs.defconfig }}`%0A\
-👤 Developer: `${{ github.event.inputs.developer }}`%0A\
-📦 ZIP: `${ZIP_NAME}`%0A\
-🕒 Time: `${DATE}`"
-
-          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-            -d parse_mode="Markdown" \
-            -d text="$MESSAGE"
