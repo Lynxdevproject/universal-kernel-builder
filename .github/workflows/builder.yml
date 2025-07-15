@@ -16,7 +16,7 @@ on:
         required: true
         default: 'begonia_user_defconfig'
       build_args:
-        description: '⚙️ Extra build args (e.g., CONFIG flags) — If you don\'t know this, don\'t modify.'
+        description: '⚙️ Extra build args'
         required: false
         default: 'CONFIG_CC_STACKPROTECTOR_STRONG=n'
       anykernel:
