@@ -63,8 +63,7 @@ jobs:
       - name: 🧙 Inject KernelSU-Next
         if: ${{ github.event.inputs.enable_kernelsu_next }}
         run: |
-          git clone --depth=1 https://github.com/KernelSU-Next/KernelSU-Next.git KernelSU
-          bash KernelSU/tools/init_kernelsu.sh kernel-source
+          curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -
 
       - name: ⚙️ Build Kernel
         run: |
