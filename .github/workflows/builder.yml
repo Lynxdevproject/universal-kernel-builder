@@ -4,25 +4,42 @@ on:
   workflow_dispatch:
     inputs:
       source_repo:
-        description: '🔗 URL source kernel (e.g., https://github.com/lynxdevproject/kernel-begonia)'
+        description: '🔗 URL source kernel'
         required: true
         default: 'https://github.com/lynxdevproject/kernel-begonia'
       branch:
-        description: '🌿 Branch to build (e.g., main, upstream-v6.1)'
+        description: '🌿 Branch to build'
         required: true
         default: 'main'
       codename:
-        description: '📱 Device codename (e.g., begonia)'
+        description: '📱 Device codename'
         required: true
         default: 'begonia'
       defconfig:
-        description: '🧪 Kernel defconfig (e.g., begonia_user_defconfig)'
+        description: '🧪 Kernel defconfig'
         required: true
         default: 'begonia_user_defconfig'
       anykernel:
-        description: '📦 Use AnyKernel3 packaging? (true/false)'
+        description: '📦 Use AnyKernel3 packaging?'
         required: true
-        default: 'false'
+        type: boolean
+        default: false
+      anykernel_repo:
+        description: '🌐 URL AnyKernel3 repo'
+        required: false
+        default: 'https://github.com/osm0sis/AnyKernel3.git'
+      anykernel_branch:
+        description: '🌿 Branch of AnyKernel3'
+        required: false
+        default: 'master'
+      zip_name:
+        description: '📝 Output ZIP base name (e.g., astra-kernel-begonia)'
+        required: false
+        default: 'ReogKernel'
+      developer:
+        description: '👤 Your name or ID (e.g., lynx@workspace)'
+        required: false
+        default: 'anon'
 
 jobs:
   build:
@@ -37,9 +54,10 @@ jobs:
           git clone --depth=1 -b "${{ github.event.inputs.branch }}" "${{ github.event.inputs.source_repo }}" kernel
           cd kernel
 
-      - name: 🔧 Setup Toolchain
+      - name: 🔧 Setup AOSP Clang Toolchain
         run: |
-          git clone --depth=1 https://github.com/LineageOS/android_prebuilts_clang_host_linux-x86 lineage-clang
+          git clone --depth=1 https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 aosp-clang
+          echo "CLANG_FOLDER=$(ls aosp-clang | grep 'clang-')" >> $GITHUB_ENV
 
       - name: 🧰 Install Dependencies
         run: |
@@ -53,23 +71,25 @@ jobs:
           export ARCH=arm64
           export SUBARCH=arm64
           export CROSS_COMPILE=aarch64-linux-android-
-          export PATH="${GITHUB_WORKSPACE}/lineage-clang/bin:${PATH}"
+          export PATH="${GITHUB_WORKSPACE}/aosp-clang/${{ env.CLANG_FOLDER }}/bin:${PATH}"
           mkdir -p $OUT_DIR
           make O=$OUT_DIR ${{ github.event.inputs.defconfig }}
           make O=$OUT_DIR -j$(nproc) 2>&1 | tee ../build.log
 
-      - name: 📦 Package with AnyKernel (Optional)
-        if: ${{ github.event.inputs.anykernel == 'true' }}
+      - name: 📦 Package with AnyKernel3
+        if: ${{ github.event.inputs.anykernel }}
         run: |
-          git clone --depth=1 https://github.com/osm0sis/AnyKernel3.git anykernel
+          git clone --depth=1 -b "${{ github.event.inputs.anykernel_branch }}" "${{ github.event.inputs.anykernel_repo }}" anykernel
           cp out/Image.gz-dtb anykernel/
           cd anykernel
-          zip -r ReogKernel-${{ github.event.inputs.codename }}.zip *
+          DATE=$(date +'%Y-%m-%d_%H-%M')
+          ZIP_NAME="${{ github.event.inputs.zip_name }}-${{ github.event.inputs.codename }}-${{ github.event.inputs.developer }}-${DATE}.zip"
+          zip -r "${ZIP_NAME}" *
 
       - name: ☁️ Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ReogKernel-${{ github.event.inputs.codename }}
+          name: Kernel-${{ github.event.inputs.codename }}
           path: |
             build.log
             out/Image.gz-dtb
