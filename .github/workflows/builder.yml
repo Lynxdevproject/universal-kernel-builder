@@ -16,7 +16,7 @@ on:
         required: true
         default: 'begonia_user_defconfig'
       build_args:
-        description: '⚙️ Extra build args (e.g., CONFIG flags)'
+        description: '⚙️ Extra build args'
         required: false
         default: 'CONFIG_CC_STACKPROTECTOR_STRONG=n'
       anykernel:
@@ -25,7 +25,7 @@ on:
         type: boolean
         default: true
       anykernel_repo:
-        description: '🌐 URL AnyKernel3 repo'
+        description: '🌐 AnyKernel3 repo URL'
         required: false
         default: 'https://github.com/osm0sis/AnyKernel3.git'
       anykernel_branch:
@@ -37,15 +37,15 @@ on:
         required: false
         default: 'ReogKernel'
       developer:
-        description: '👤 Your name/ID'
+        description: '👤 Developer name or ID'
         required: false
         default: 'lynx@workspace'
       telegram_bot_token:
-        description: '🤖 Telegram Bot Token'
+        description: '🤖 Telegram bot token'
         required: false
         default: ''
       telegram_chat_id:
-        description: '🆔 Telegram Chat/Group ID'
+        description: '🆔 Telegram chat/group ID'
         required: false
         default: ''
 
