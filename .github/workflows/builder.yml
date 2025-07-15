@@ -16,14 +16,14 @@ on:
         required: true
         default: 'begonia_user_defconfig'
       build_args:
-        description: '⚙️ Extra build args (optional)'
+        description: '⚙️ Extra build args (e.g., CONFIG flags)'
         required: false
-        default: ''
+        default: 'CONFIG_CC_STACKPROTECTOR_STRONG=n'
       anykernel:
         description: '📦 Use AnyKernel3 packaging?'
         required: true
         type: boolean
-        default: false
+        default: true
       anykernel_repo:
         description: '🌐 URL AnyKernel3 repo'
         required: false
@@ -33,13 +33,21 @@ on:
         required: false
         default: 'master'
       zip_name:
-        description: '📝 Output ZIP base name (e.g., astra-kernel-begonia)'
+        description: '📝 Output ZIP base name'
         required: false
         default: 'ReogKernel'
       developer:
-        description: '👤 Your name or ID (e.g., lynx@workspace)'
+        description: '👤 Your name/ID'
         required: false
-        default: 'anon'
+        default: 'lynx@workspace'
+      telegram_bot_token:
+        description: '🤖 Telegram Bot Token'
+        required: false
+        default: ''
+      telegram_chat_id:
+        description: '🆔 Telegram Chat/Group ID'
+        required: false
+        default: ''
 
 jobs:
   build-kernel:
@@ -53,7 +61,7 @@ jobs:
         run: |
           git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 aarch64-linux-android-4.9
           git clone --depth=1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 arm-linux-androideabi-4.9
-          mkdir clang && curl https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android14-dev/clang-r487747c.tar.gz -RLO && tar -C clang/ -xf clang-*.tar.gz
+          mkdir clang && curl -s https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android14-dev/clang-r487747c.tar.gz -RLO && tar -C clang/ -xf clang-*.tar.gz
 
       - name: ⏱️ Pull Kernel Source
         run: |
@@ -78,7 +86,7 @@ jobs:
         if: ${{ github.event.inputs.anykernel }}
         run: |
           git clone --depth=1 -b "${{ github.event.inputs.anykernel_branch }}" "${{ github.event.inputs.anykernel_repo }}" AnyKernel3
-          rm -rf AnyKernel3/.git AnyKernel3/.github AnyKernel3/LICENSE AnyKernel3/README.md
+          rm -rf AnyKernel3/.git* AnyKernel3/LICENSE AnyKernel3/README.md
           IMG_PATH="out/arch/arm64/boot"
           for img in Image.gz-dtb Image-dtb Image.gz Image; do
             if [[ -f $IMG_PATH/$img ]]; then
@@ -102,3 +110,19 @@ jobs:
             build.log
             out/arch/arm64/boot/*
             AnyKernel3/*.zip
+
+      - name: 🔔 Notify Telegram
+        if: ${{ github.event.inputs.telegram_bot_token != '' && github.event.inputs.telegram_chat_id != '' }}
+        run: |
+          DATE=$(date +'%Y-%m-%d_%H-%M')
+          ZIP_NAME="${{ github.event.inputs.zip_name }}-${{ github.event.inputs.developer }}-${DATE}.zip"
+          MESSAGE="✅ *Build selesai!*%0A\
+📱 Device: `${{ github.event.inputs.defconfig }}`%0A\
+👤 Developer: `${{ github.event.inputs.developer }}`%0A\
+📦 ZIP: `${ZIP_NAME}`%0A\
+🕒 Time: `${DATE}`"
+
+          curl -s -X POST "https://api.telegram.org/bot${{ github.event.inputs.telegram_bot_token }}/sendMessage" \
+            -d chat_id="${{ github.event.inputs.telegram_chat_id }}" \
+            -d parse_mode="Markdown" \
+            -d text="$MESSAGE"
