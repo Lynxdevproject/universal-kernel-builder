@@ -1,4 +1,4 @@
-name: Universal Kernel Builder
+name: Universal Kernel Builder + KernelSU-Next
 
 on:
   workflow_dispatch:
@@ -31,11 +31,16 @@ on:
       zip_name:
         description: '📝 Output ZIP base name'
         required: false
-        default: 'ReogKernel'
+        default: 'ReogKernelSU'
       developer:
         description: '👤 Developer name/ID'
         required: false
         default: 'lynx@workspace'
+      enable_kernelsu_next:
+        description: '🔘 Enable KernelSU-Next patch?'
+        required: true
+        type: boolean
+        default: false
 
 jobs:
   build-kernel:
@@ -54,6 +59,12 @@ jobs:
       - name: ⏱️ Pull Kernel Source
         run: |
           git clone --depth=1 ${{ github.event.inputs.kernel_source }} -b ${{ github.event.inputs.kernel_branch }} kernel-source
+
+      - name: 🧙 Inject KernelSU-Next
+        if: ${{ github.event.inputs.enable_kernelsu_next }}
+        run: |
+          git clone --depth=1 https://github.com/KernelSU-Next/KernelSU-Next.git KernelSU
+          bash KernelSU/tools/init_kernelsu.sh kernel-source
 
       - name: ⚙️ Build Kernel
         run: |
