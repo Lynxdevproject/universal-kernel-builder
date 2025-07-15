@@ -4,23 +4,23 @@ on:
   workflow_dispatch:
     inputs:
       source_repo:
-        description: 'URL source kernel (e.g., https://github.com/lynxdevproject/kernel-begonia)'
+        description: '🔗 URL source kernel (e.g., https://github.com/lynxdevproject/kernel-begonia)'
         required: true
         default: 'https://github.com/lynxdevproject/kernel-begonia'
       branch:
-        description: 'Branch to build (e.g., main, upstream-v6.1)'
+        description: '🌿 Branch to build (e.g., main, upstream-v6.1)'
         required: true
         default: 'main'
       codename:
-        description: 'Device codename (e.g., begonia)'
+        description: '📱 Device codename (e.g., begonia)'
         required: true
         default: 'begonia'
       defconfig:
-        description: 'Kernel defconfig (e.g., begonia_user_defconfig)'
+        description: '🧪 Kernel defconfig (e.g., begonia_user_defconfig)'
         required: true
         default: 'begonia_user_defconfig'
       anykernel:
-        description: 'Use AnyKernel3 packaging? (true/false)'
+        description: '📦 Use AnyKernel3 packaging? (true/false)'
         required: true
         default: 'false'
 
@@ -59,3 +59,18 @@ jobs:
           make O=$OUT_DIR -j$(nproc) 2>&1 | tee ../build.log
 
       - name: 📦 Package with AnyKernel (Optional)
+        if: ${{ github.event.inputs.anykernel == 'true' }}
+        run: |
+          git clone --depth=1 https://github.com/osm0sis/AnyKernel3.git anykernel
+          cp out/Image.gz-dtb anykernel/
+          cd anykernel
+          zip -r ReogKernel-${{ github.event.inputs.codename }}.zip *
+
+      - name: ☁️ Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ReogKernel-${{ github.event.inputs.codename }}
+          path: |
+            build.log
+            out/Image.gz-dtb
+            anykernel/*.zip
